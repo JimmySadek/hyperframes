@@ -11,7 +11,8 @@ describe.skipIf(process.platform === "win32")("extraction ffmpeg time limit", ()
   const previousFfmpeg = process.env[FFMPEG_PATH_ENV];
   let clip = "";
 
-  // `-re` reads the input at its own rate, so frames arrive steadily for the clip's length.
+  // `-re` reads the input at its own rate, so frames arrive steadily for the clip's length. ffmpeg's first
+  // progress line can take 1.5 s on a busy Mac, so the steady run's limit leaves room for that.
   const shim = (name: string, body: string) => {
     const path = join(dir, `${name}.sh`);
     writeFileSync(path, `#!/bin/sh\n${body}\n`);
@@ -26,7 +27,7 @@ describe.skipIf(process.platform === "win32")("extraction ffmpeg time limit", ()
         clip,
         id,
         0,
-        3,
+        6,
         { fps: 10, outputDir: join(dir, "out") },
         undefined,
         { ffmpegProcessTimeout: limitMs },
@@ -40,7 +41,7 @@ describe.skipIf(process.platform === "win32")("extraction ffmpeg time limit", ()
   beforeAll(async () => {
     clip = join(dir, "clip.mp4");
     const made = await runFfmpeg([
-      ...["-y", "-v", "error", "-f", "lavfi", "-i", "testsrc=s=32x32:d=3:r=10"],
+      ...["-y", "-v", "error", "-f", "lavfi", "-i", "testsrc=s=32x32:d=6:r=10"],
       ...["-c:v", "libx264", "-preset", "ultrafast", "-pix_fmt", "yuv420p", clip],
     ]);
     expect(made.success, made.stderr).toBe(true);
@@ -51,9 +52,9 @@ describe.skipIf(process.platform === "win32")("extraction ffmpeg time limit", ()
   it("finishes a run that takes longer than the limit while frames keep coming", async () => {
     const slow = shim("slow", `exec "${getFfmpegBinary()}" -re "$@"`);
     const started = Date.now();
-    const frames = await extractThrough(slow, "slow", 1_500);
-    expect(Date.now() - started).toBeGreaterThan(1_500);
-    expect(frames.totalFrames).toBe(30);
+    const frames = await extractThrough(slow, "slow", 3_000);
+    expect(Date.now() - started).toBeGreaterThan(3_000);
+    expect(frames.totalFrames).toBe(60);
   }, 30_000);
 
   it("stops a run that writes no frame for the limit, as a timeout", async () => {
