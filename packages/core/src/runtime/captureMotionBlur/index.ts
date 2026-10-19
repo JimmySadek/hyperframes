@@ -1,31 +1,14 @@
 /**
- * Capture motion blur: real-time motion blur for a composition, in preview and in render.
+ * Capture motion blur, in preview and render. Root attributes: data-motion-blur="on"|"off",
+ * -shutter (0–720°, default 180), -samples (2–64, default 16), -events="on" (run timeline
+ * callbacks at sub-frame samples). PAGE_MOTION_BLUR_DEFAULT_GLOBAL turns roots on by default;
+ * PAGE_MOTION_BLUR_OFF_GLOBAL (engine blur, or a preview that could not blur) turns all off.
  *
- * Opt in on the composition root (or, when the host sets PAGE_MOTION_BLUR_DEFAULT_GLOBAL, every
- * root is on unless it says data-motion-blur="off"):
- *   data-motion-blur="on"            enable
- *   data-motion-blur-shutter="180"   shutter angle in degrees (0–720, default 180)
- *   data-motion-blur-samples="16"    taps per mover per frame (2–64, default 16)
- *   data-motion-blur-events="on"     run timeline callbacks at sub-frame samples (only for
- *                                    compositions whose callbacks are pure functions of time)
- * and opt an element (with its subtree) out with data-motion-blur="off".
- *
- * Each frame costs two html-in-canvas captures of the whole composition plus style reads:
- *   1. read every fast mover's pose at a few times across the shutter (timeline seeks, no paint),
- *   2. on the next paint, capture the root and crop each moving mover's pixels out of it,
- *   3. hide those movers and, on the following paint, capture the background, then redraw each
- *      mover's pixels along its path over it (see composite.ts).
- * A frame where nothing moves needs only the first capture.
- * The root is wrapped, not its children, so author selectors such as `#root > .x` still match.
- * It is wrapped only while it plays or renders, and only when something in it moves: paused, the
- * composition is plain DOM again, so Studio can select what is in it (elements inside a capture
- * canvas cannot be hit-tested).
- *
- * Needs Chrome's html-in-canvas (`drawElementImage`); without it nothing is wrapped and the
- * composition renders unblurred. The producer routes a page that opts in to screenshot capture
- * (`detectRenderModeHints`), keeping its usual worker count. When the engine applies its own
- * sub-frame blur, or the render must match a Studio preview that could not blur, the engine sets
- * PAGE_MOTION_BLUR_OFF_GLOBAL and this stays off.
+ * Per frame: read movers' poses across the shutter (seeks, no paint), capture the root and crop
+ * the movers, hide them and capture the background, then redraw each along its path.
+ * The root is wrapped, not its children (author selectors keep matching), and only while playing
+ * or rendering with something moving: paused, it is plain DOM so Studio can select inside it.
+ * Needs html-in-canvas (`drawElementImage`); without it nothing changes.
  */
 
 import {

@@ -324,7 +324,6 @@ function stripCompilerMountBootstrap(source: string): string {
   );
 }
 
-/** Whether the runtime will draw capture motion blur, which it decides from the root's opt-in. */
 function capturesMotionBlur(document: Document, pageMotionBlur?: "default" | "off"): boolean {
   if (pageMotionBlur === "off") return false;
   if (document.querySelector('[data-composition-id][data-motion-blur="on"]')) return true;
@@ -346,11 +345,7 @@ export function detectRenderModeHints(
         "Detected html-in-canvas API (layoutsubtree canvas). Chrome does not support concurrent drawElementImage across multiple workers; render is pinned to a single worker.",
     });
   } else if (capturesMotionBlur(document, pageMotionBlur)) {
-    // The runtime wraps the root in its capture canvas at load, after this source scan, so the
-    // page must render through screenshots (the drawElement fast path would nest a second capture
-    // canvas around it, which hangs Chrome). Unlike other html-in-canvas pages it is NOT pinned to
-    // one worker: one whole-root capture per frame measured identical across 1 and 4 workers
-    // (k3-promo, 494 frames, ≥50.9 dB per frame, at encoder noise) and about 2× faster.
+    // Not pinned to one worker: k3-promo measured identical across 1 and 4 workers, 2× faster.
     reasons.push({
       code: "captureMotionBlur",
       message:
@@ -1942,7 +1937,6 @@ export interface CompileForRenderOptions {
    * `window.__hfVariables` injection covers script reads, not var() in CSS.
    */
   variables?: Record<string, unknown>;
-  /** See RenderConfig.pageMotionBlur: whether capture motion blur is on by default, or off. */
   pageMotionBlur?: "default" | "off";
 }
 

@@ -1,12 +1,9 @@
 /**
  * Which elements to blur: the ones that move fast enough for a smear to show.
  *
- * One scan over the composition's duration. An element is a candidate when its inline
- * style changes between scan steps (GSAP and script-driven motion write inline
- * styles) or a page animation (CSS / WAAPI) animates one of those properties on it. Candidates
- * then need a peak on-screen speed of at least MIN_SPEED px/frame and must not be in a 3D
- * context (the redraw is a 2D affine copy). Of nested candidates only the outermost is kept:
- * a moving child is already inside its moving parent's pixels.
+ * One scan: candidates are elements whose inline style changes or that a CSS / WAAPI animation
+ * moves; they must reach MIN_SPEED px/frame outside any 3D context (the redraw is 2D), and only
+ * the outermost of nested candidates is kept.
  */
 
 import { isHtmlElement } from "../domRealm";
@@ -44,8 +41,7 @@ export interface Discovery {
   dynamic: Set<Element>;
 }
 
-// The whole inline style in one read. It also changes for opacity or colour tweens, which only
-// costs those elements a rect check: a candidate still has to move fast on screen.
+// The whole inline style in one read; opacity or colour tweens only cost a rect check.
 const styleKey = (el: HTMLElement): string => el.getAttribute("style") ?? "";
 
 function optedOut(el: Element, scene: Element): boolean {

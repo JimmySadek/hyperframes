@@ -1,17 +1,12 @@
 /**
  * The per-frame draw: a background, then each mover's own pixels redrawn along its path.
  *
- * Every mover's pixels are cropped out of a capture of the scene (its frame-time box, mapped back
- * to the box's own coordinates), then drawn at each tap pose into a float buffer with additive
- * blending and weight 1/n: the average of n transformed copies, i.e. the shutter integral. Its
- * coverage fades towards the ends of the path, so the trail must sit on a background that does
- * not already contain the mover: a second capture with the movers hidden. Without one (no second
- * paint arrived) the sharp frame stands in, and the mover's frame-time pixels show through the
- * trail at full strength; thin lines then look unblurred.
+ * Each mover is cropped from a capture of the scene and drawn at every tap pose into a float
+ * buffer, additive at weight 1/n: the shutter integral. Its coverage fades at the path ends, so
+ * the trail needs a background without the mover (a second capture, movers hidden); falling back
+ * to the sharp frame leaves thin lines looking unblurred.
  *
- * Image-space approximation, by design: anything inside a mover's box (a label stacked on it,
- * the background behind its transparent parts) moves with it; ink outside its box (glows) is not
- * redrawn.
+ * Image-space approximation: a mover's box contents move with it; ink outside it is not redrawn.
  */
 
 import { type Affine, invert, sweep, thinTaps } from "./pose";

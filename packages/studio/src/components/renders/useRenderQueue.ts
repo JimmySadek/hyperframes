@@ -10,13 +10,11 @@ import { ffmpegInstallMessage, useFfmpegStatus } from "./useFfmpegStatus";
 import { requestStudioFeedback, type FeedbackContext } from "../feedback/feedbackTrigger";
 import { studioApiFetch } from "../../utils/studioApiFetch";
 
-// Same probe as core's supportsCaptureMotionBlur (Chrome html-in-canvas). The preview iframe
-// runs in this browser, so this window answers for it.
-// ponytail: inlined, not a new core subpath for two lines; share it if a third caller appears.
+// WYSIWYG: the preview iframe runs in this browser, so a render blurs only if this one can.
 function canPreviewMotionBlur(): boolean {
   const ctx = globalThis.CanvasRenderingContext2D?.prototype;
-  const canvas = globalThis.HTMLCanvasElement?.prototype;
-  return !!ctx && !!canvas && "drawElementImage" in ctx && "requestPaint" in canvas;
+  if (!ctx || typeof document === "undefined") return false;
+  return "drawElementImage" in ctx && "requestPaint" in document.createElement("canvas");
 }
 
 export interface RenderJob {
@@ -252,7 +250,6 @@ export function useRenderQueue(
         fps,
         quality,
         format,
-        // WYSIWYG: a browser that cannot preview capture motion blur gets a render without it.
         previewMotionBlur: canPreviewMotionBlur(),
       };
       // The id is MINTED by getAnonymousId(), so calling it unconditionally

@@ -108,8 +108,6 @@ export function registerRenderRoutes(api: Hono, adapter: StudioApiAdapter): void
       // window.__hfVariables — same channel as `hyperframes render --variables`.
       variables?: Record<string, unknown>;
       gpu?: boolean;
-      // Whether this browser can preview capture motion blur; a render never blurs what
-      // the preview could not show.
       previewMotionBlur?: boolean;
     };
     const VALID_FORMATS = new Set(["mp4", "webm", "mov"]);

@@ -389,11 +389,6 @@ export interface RenderConfig {
    * and JPEG samples would be averaged after a lossy quantization.
    */
   motionBlur?: MotionBlurOptions;
-  /**
-   * The page's own capture motion blur (`data-motion-blur`): "default" turns it on for roots
-   * that did not opt in, "off" turns it off even for those that did (a Studio that could not
-   * preview it). Absent: opt-in only.
-   */
   pageMotionBlur?: "default" | "off";
   workers?: number;
   useGpu?: boolean;

@@ -1,20 +1,11 @@
-/**
- * Set by the engine before page scripts run when it applies its own sub-frame motion blur, or
- * when the render must match a Studio preview that could not blur; the runtime's capture motion
- * blur then stays off, so a frame is never blurred twice and never blurred unseen.
- */
+// Set by the engine: its own sub-frame blur runs, or the Studio preview could not blur.
 export const PAGE_MOTION_BLUR_OFF_GLOBAL = "__HF_PAGE_MOTION_BLUR_OFF__";
 
-/**
- * Set by the host (Studio preview, renderer) when capture motion blur is on by default: a root
- * without `data-motion-blur` blurs, and `data-motion-blur="off"` opts it out.
- */
+// Set by the host when roots without `data-motion-blur` blur by default.
 export const PAGE_MOTION_BLUR_DEFAULT_GLOBAL = "__HF_PAGE_MOTION_BLUR_DEFAULT__";
 
-/** The canary that turns capture motion blur on by default. */
 export const CAPTURE_MOTION_BLUR_CANARY = "capture-motion-blur";
 
-/** Whether a browser can draw capture motion blur: Chrome's html-in-canvas, behind a flag. */
 export function supportsCaptureMotionBlur(win: Window = window): boolean {
   const w = win as Window & {
     CanvasRenderingContext2D?: { prototype: object };
