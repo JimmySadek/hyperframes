@@ -184,6 +184,11 @@ export interface StudioApiAdapter {
      */
     telemetryOptOut?: boolean;
     /**
+     * Whether the triggering browser can preview capture motion blur. `false` means the
+     * render must not blur either (WYSIWYG); absent means it was not said.
+     */
+    previewMotionBlur?: boolean;
+    /**
      * Optional output resolution preset. See `resolveDeviceScaleFactor` in
      * the producer for the integer-scale + aspect + HDR constraints.
      */

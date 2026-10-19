@@ -290,7 +290,11 @@ function assertSubCompositionsUsable(
   }
 }
 
-export type RenderModeHintCode = "iframe" | "requestAnimationFrame" | "htmlInCanvas";
+export type RenderModeHintCode =
+  | "iframe"
+  | "requestAnimationFrame"
+  | "htmlInCanvas"
+  | "captureMotionBlur";
 
 export interface RenderModeHint {
   code: RenderModeHintCode;
@@ -320,7 +324,18 @@ function stripCompilerMountBootstrap(source: string): string {
   );
 }
 
-export function detectRenderModeHints(html: string): RenderModeHints {
+/** Whether the runtime will draw capture motion blur, which it decides from the root's opt-in. */
+function capturesMotionBlur(document: Document, pageMotionBlur?: "default" | "off"): boolean {
+  if (pageMotionBlur === "off") return false;
+  if (document.querySelector('[data-composition-id][data-motion-blur="on"]')) return true;
+  const root = document.querySelector("[data-composition-id]");
+  return pageMotionBlur === "default" && root?.getAttribute("data-motion-blur") !== "off";
+}
+
+export function detectRenderModeHints(
+  html: string,
+  pageMotionBlur?: "default" | "off",
+): RenderModeHints {
   const reasons: RenderModeHint[] = [];
   const { document } = parseHTML(html);
 
@@ -329,6 +344,17 @@ export function detectRenderModeHints(html: string): RenderModeHints {
       code: "htmlInCanvas",
       message:
         "Detected html-in-canvas API (layoutsubtree canvas). Chrome does not support concurrent drawElementImage across multiple workers; render is pinned to a single worker.",
+    });
+  } else if (capturesMotionBlur(document, pageMotionBlur)) {
+    // The runtime wraps the root in its capture canvas at load, after this source scan, so the
+    // page must render through screenshots (the drawElement fast path would nest a second capture
+    // canvas around it, which hangs Chrome). Unlike other html-in-canvas pages it is NOT pinned to
+    // one worker: one whole-root capture per frame measured identical across 1 and 4 workers
+    // (k3-promo, 494 frames, ≥50.9 dB per frame, at encoder noise) and about 2× faster.
+    reasons.push({
+      code: "captureMotionBlur",
+      message:
+        'Detected capture motion blur (data-motion-blur="on", or on by default), which draws each frame with html-in-canvas; routed through screenshot capture mode.',
     });
   }
 
@@ -1916,6 +1942,8 @@ export interface CompileForRenderOptions {
    * `window.__hfVariables` injection covers script reads, not var() in CSS.
    */
   variables?: Record<string, unknown>;
+  /** See RenderConfig.pageMotionBlur: whether capture motion blur is on by default, or off. */
+  pageMotionBlur?: "default" | "off";
 }
 
 const GSAP_CDN_BASE = gsapCdnDist();
@@ -2027,7 +2055,7 @@ export async function compileForRender(
     /(<(?:video|audio)\b[^>]*?)\s+preload\s*=\s*["']none["']/gi,
     "$1",
   );
-  const renderModeHints = detectRenderModeHints(sanitizedHtml);
+  const renderModeHints = detectRenderModeHints(sanitizedHtml, options.pageMotionBlur);
   const hasShaderTransitions = detectShaderTransitionUsage(sanitizedHtml);
   // Detected BEFORE inlineExternalScripts: GSAP's own source contains
   // `transformPerspective`, so scanning post-inline HTML would flag every

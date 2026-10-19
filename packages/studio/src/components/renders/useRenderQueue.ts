@@ -10,6 +10,15 @@ import { ffmpegInstallMessage, useFfmpegStatus } from "./useFfmpegStatus";
 import { requestStudioFeedback, type FeedbackContext } from "../feedback/feedbackTrigger";
 import { studioApiFetch } from "../../utils/studioApiFetch";
 
+// Same probe as core's supportsCaptureMotionBlur (Chrome html-in-canvas). The preview iframe
+// runs in this browser, so this window answers for it.
+// ponytail: inlined, not a new core subpath for two lines; share it if a third caller appears.
+function canPreviewMotionBlur(): boolean {
+  const ctx = globalThis.CanvasRenderingContext2D?.prototype;
+  const canvas = globalThis.HTMLCanvasElement?.prototype;
+  return !!ctx && !!canvas && "drawElementImage" in ctx && "requestPaint" in canvas;
+}
+
 export interface RenderJob {
   id: string;
   status: "rendering" | "complete" | "failed" | "cancelled";
@@ -238,10 +247,13 @@ export function useRenderQueue(
         gpu?: boolean;
         telemetryDistinctId?: string;
         telemetryOptOut?: boolean;
+        previewMotionBlur: boolean;
       } = {
         fps,
         quality,
         format,
+        // WYSIWYG: a browser that cannot preview capture motion blur gets a render without it.
+        previewMotionBlur: canPreviewMotionBlur(),
       };
       // The id is MINTED by getAnonymousId(), so calling it unconditionally
       // created a telemetry identity for a profile that had opted out — and
