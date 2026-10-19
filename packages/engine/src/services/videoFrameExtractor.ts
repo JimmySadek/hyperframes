@@ -992,8 +992,6 @@ export async function extractVideoFramesRange(
   const isMacOS = process.platform === "darwin";
   const toneMappedToSdr = options.toneMapHdrToSdr === true && isHdr && (await toneMapsWithZscale());
   const keepsHdrForChrome = isHdr && isMacOS && !toneMappedToSdr;
-  // The Mac's media engine decodes the same pixels at a fraction of the CPU; ffmpeg falls back
-  // to software for a stream it cannot take.
   const decodeWithVideoToolbox =
     keepsHdrForChrome ||
     (isMacOS &&
@@ -1079,7 +1077,6 @@ export async function extractVideoFramesRange(
   if (format === "png") encodeArgs.push("-compression_level", "1");
   encodeArgs.push("-y", outputPattern);
 
-  // A slow source (4K60 HEVC tone-mapped on a busy CPU) can need minutes per segment; only a stall is a failure.
   const runOptions = { signal, stallTimeout: ffmpegProcessTimeout };
   const filterArgsFor = (seek: number): string[] => {
     const filters = [...vfFilters];
